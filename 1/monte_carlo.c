@@ -64,12 +64,11 @@ particle_result_t process_particle(random_walk_ctx_t* ctx) {
 void process_all_omp(random_walk_ctx_t* ctx) {
 	int number_of_right = 0;
 	int sum_life_time = 0;
-	particle_result_t particle_result;
 
 	double ts = omp_get_wtime();
 	#pragma omp parallel for schedule(dynamic) reduction(+: number_of_right, sum_life_time)
 	for (int i = 0; i < ctx->N; ++i) {
-		particle_result = process_particle(ctx);
+		particle_result_t particle_result = process_particle(ctx);
 		number_of_right += particle_result.is_right;
 		sum_life_time += particle_result.life_time;
 	}
