@@ -29,9 +29,9 @@ int get_random_step(random_walk_ctx_t* ctx) {
 	int thread = omp_get_thread_num();
 	double random_value = (double) rand_r(&seed_for_threads[thread]) / RAND_MAX;
 	if (random_value > ctx->p) {
-		return 1;
-	} else {
 		return -1;
+	} else {
+		return 1;
 	}
 }
 
