@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct sort_ctx_t {
     int n;
@@ -188,14 +189,13 @@ int main(int argc, char** argv) {
 
     int* ar = (int*) malloc(n * sizeof(int));
     int* tmp = (int*) malloc(n * sizeof(int));
-    FILE* input = fopen("input.txt", "r");
     FILE* data = fopen("data.txt", "w");
+    srand(time(NULL));
     for (int i = 0; i < n; i++) {
-        fscanf(input, "%d", &ar[i]);
+        ar[i] = rand();
         fprintf(data, "%d ", ar[i]);
     }
     fprintf(data, "\n");
-    fclose(input);
 
     sort_ctx_t ctx = {
         .n = n,

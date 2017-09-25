@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
+#include <time.h>
 
 int compare (const void * a, const void * b) {
     return ( *(int*)a - *(int*)b );
@@ -13,9 +14,9 @@ int main(int argc, char** argv) {
 
     int n = atoi(argv[1]);
     int* ar = (int*) malloc(n * sizeof(int));
-    FILE* input = fopen("input.txt", "r");
+    srand(time(NULL));
     for (int i = 0; i < n; i++) {
-        fscanf(input, "%d", &ar[i]);
+        ar[i] = rand();
     }
 
     double start = omp_get_wtime();
