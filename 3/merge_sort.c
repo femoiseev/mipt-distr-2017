@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <omp.h>
 #include <string.h>
 
@@ -100,7 +101,8 @@ int binary_search(int* array, int left, int right, int value) {
     }
 }
 
-void parallel_merge(merge_ctx_t* ctx) {
+void* parallel_merge(void* ptr) {
+    merge_ctx_t* ctx = (merge_ctx_t*) ptr;
     if (ctx->left_size < ctx->m || ctx->right_size < ctx->m) {
         merge(ctx);
     } else {
@@ -125,18 +127,19 @@ void parallel_merge(merge_ctx_t* ctx) {
             .tmp = ctx->tmp + ctx->left_size / 2 + right_pos,
             .m = ctx->m,
         };
-        #pragma omp parallel sections
-        {
-            #pragma omp section
-            parallel_merge(&left_ctx);
+        pthread_t left_thread;
+        pthread_t right_thread;
+        pthread_create(&left_thread, NULL, parallel_merge, &left_ctx);
+        pthread_create(&right_thread, NULL, parallel_merge, &right_ctx);
 
-            #pragma omp section
-            parallel_merge(&right_ctx);
-        }
+        pthread_join(left_thread, NULL);
+        pthread_join(right_thread, NULL);
     }
+    return NULL;
 }
 
-void parallel_merge_sort(sort_ctx_t* ctx) {
+void* parallel_merge_sort(void* ptr) {
+    sort_ctx_t* ctx = (sort_ctx_t*) ptr;
     if (ctx->n <= ctx->m) {
         qsort(ctx->array, ctx->n, sizeof(int), compare);
     } else {
@@ -153,14 +156,13 @@ void parallel_merge_sort(sort_ctx_t* ctx) {
             .array = ctx->array + mid,
             .tmp = ctx->tmp + mid,
         };
-        #pragma omp parallel sections
-        {
-            #pragma omp section
-            parallel_merge_sort(&left_ctx);
+        pthread_t left_thread;
+        pthread_t right_thread;
+        pthread_create(&left_thread, NULL, parallel_merge_sort, &left_ctx);
+        pthread_create(&right_thread, NULL, parallel_merge_sort, &right_ctx);
 
-            #pragma omp section
-            parallel_merge_sort(&right_ctx);
-        }
+        pthread_join(left_thread, NULL);
+        pthread_join(right_thread, NULL);
         merge_ctx_t merge_ctx = {
             .left_size = mid,
             .right_size = ctx->n - mid,
@@ -173,6 +175,7 @@ void parallel_merge_sort(sort_ctx_t* ctx) {
         parallel_merge(&merge_ctx);
         memcpy(ctx->array, merge_ctx.target, sizeof(int) * ctx->n);
     }
+    return NULL;
 }
 
 int main(int argc, char** argv) {
