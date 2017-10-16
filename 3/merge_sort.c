@@ -9,6 +9,8 @@ typedef struct sort_ctx_t {
     int m;
     int* array;
     int* tmp;
+    int threads_num;
+    pthread_t* threads;
 } sort_ctx_t;
 
 typedef struct merge_ctx_t {
@@ -19,6 +21,8 @@ typedef struct merge_ctx_t {
     int* target;
     int* tmp;
     int m;
+    int threads_num;
+    pthread_t* threads;
 } merge_ctx_t;
 
 int compare (const void * a, const void * b) {
@@ -103,7 +107,7 @@ int binary_search(int* array, int left, int right, int value) {
 
 void* parallel_merge(void* ptr) {
     merge_ctx_t* ctx = (merge_ctx_t*) ptr;
-    if (ctx->left_size < ctx->m || ctx->right_size < ctx->m) {
+    if (ctx->threads_num == 1 || ctx->left_size < ctx->m || ctx->right_size < ctx->m) {
         merge(ctx);
     } else {
         int left_value = ctx->left[ctx->left_size / 2];
@@ -117,6 +121,8 @@ void* parallel_merge(void* ptr) {
             .target = ctx->target,
             .tmp = ctx->tmp,
             .m = ctx->m,
+            .threads = ctx->threads + 2,
+            .threads_num = (ctx->threads_num - 2) / 2,
         };
         merge_ctx_t right_ctx = {
             .left_size = ctx->left_size - ctx->left_size / 2,
@@ -126,9 +132,11 @@ void* parallel_merge(void* ptr) {
             .target = ctx->target + ctx->left_size / 2 + right_pos,
             .tmp = ctx->tmp + ctx->left_size / 2 + right_pos,
             .m = ctx->m,
+            .threads = ctx->threads + 2 + left_ctx.threads_num,
+            .threads_num = ctx->threads_num - 2 - left_ctx.threads_num,
         };
-        pthread_t left_thread;
-        pthread_t right_thread;
+        pthread_t left_thread = *(ctx->threads);
+        pthread_t right_thread = *(ctx->threads + 1);
         pthread_create(&left_thread, NULL, parallel_merge, &left_ctx);
         pthread_create(&right_thread, NULL, parallel_merge, &right_ctx);
 
@@ -140,7 +148,9 @@ void* parallel_merge(void* ptr) {
 
 void* parallel_merge_sort(void* ptr) {
     sort_ctx_t* ctx = (sort_ctx_t*) ptr;
-    if (ctx->n <= ctx->m) {
+    if (ctx->threads_num == 1) {
+        merge_sort(ctx);
+    } else if (ctx->n <= ctx->m) {
         qsort(ctx->array, ctx->n, sizeof(int), compare);
     } else {
         int mid = ctx->n / 2;
@@ -149,15 +159,19 @@ void* parallel_merge_sort(void* ptr) {
             .m = ctx->m,
             .array = ctx->array,
             .tmp = ctx->tmp,
+            .threads = ctx->threads + 2,
+            .threads_num = (ctx->threads_num - 2) / 2,
         };
         sort_ctx_t right_ctx = {
             .n = ctx->n - mid,
             .m = ctx->m,
             .array = ctx->array + mid,
             .tmp = ctx->tmp + mid,
+            .threads = ctx->threads + 2 + left_ctx.threads_num,
+            .threads_num = ctx->threads_num - 2 - left_ctx.threads_num,
         };
-        pthread_t left_thread;
-        pthread_t right_thread;
+        pthread_t left_thread = *(ctx->threads);
+        pthread_t right_thread = *(ctx->threads + 1);
         pthread_create(&left_thread, NULL, parallel_merge_sort, &left_ctx);
         pthread_create(&right_thread, NULL, parallel_merge_sort, &right_ctx);
 
@@ -191,20 +205,22 @@ int main(int argc, char** argv) {
 
     int* ar = (int*) malloc(n * sizeof(int));
     int* tmp = (int*) malloc(n * sizeof(int));
-    FILE* input = fopen("input.txt", "r");
     FILE* data = fopen("data.txt", "w");
+    srand(time(NULL));
     for (int i = 0; i < n; i++) {
-        fscanf(input, "%d", &ar[i]);
+        ar[i] = rand();
         fprintf(data, "%d ", ar[i]);
     }
     fprintf(data, "\n");
-    fclose(input);
 
+    pthread_t threads[P];
     sort_ctx_t ctx = {
         .n = n,
         .m = m,
         .array = ar,
         .tmp = tmp,
+        .threads = threads,
+        .threads_num = P,
     };
 
     double start = omp_get_wtime();
