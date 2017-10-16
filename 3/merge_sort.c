@@ -107,7 +107,7 @@ int binary_search(int* array, int left, int right, int value) {
 
 void* parallel_merge(void* ptr) {
     merge_ctx_t* ctx = (merge_ctx_t*) ptr;
-    if (ctx->threads_num == 1 || ctx->left_size < ctx->m || ctx->right_size < ctx->m) {
+    if (ctx->threads_num <= 1 || ctx->left_size < ctx->m || ctx->right_size < ctx->m) {
         merge(ctx);
     } else {
         int left_value = ctx->left[ctx->left_size / 2];
@@ -148,7 +148,7 @@ void* parallel_merge(void* ptr) {
 
 void* parallel_merge_sort(void* ptr) {
     sort_ctx_t* ctx = (sort_ctx_t*) ptr;
-    if (ctx->threads_num == 1) {
+    if (ctx->threads_num <= 1) {
         merge_sort(ctx);
     } else if (ctx->n <= ctx->m) {
         qsort(ctx->array, ctx->n, sizeof(int), compare);
