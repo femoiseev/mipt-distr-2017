@@ -1,11 +1,16 @@
-build:
-	mpicc rw.c -o run -fopenmp
+CC = mpicc
+CFLAGS = -std=c99
+LDFLAGS = -fopenmp
 
-build_single:
-	mpicc rw_single.c -o single -fopenmp
+all: rw
 
-work:
-	mpirun -np 4 ./run 1 2 2 100 10 0.25 0.25 0.25 0.25
+rw: rw.o
 
-work_single:
-	mpirun -np 4 ./single 1 2 2 100 10 0.25 0.25 0.25 0.25
+rw_single: rw_single.o
+
+.PHONY: run
+run: rw
+        mpirun -np 4 ./rw 1 2 2 100 10 0.25 0.25 0.25 0.25
+
+batch: rw
+        sbatch -n 4 ./wrapper ./rw 1 2 2 100 10 0.25 0.25 0.25 0.25
