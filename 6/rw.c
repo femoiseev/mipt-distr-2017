@@ -431,15 +431,19 @@ int main (int argc, char* argv[]) {
     omp_set_num_threads(2);
 
     double start_time, end_time;
-    start_time = MPI_Wtime();
+    if (rank == MASTER) {
+        start_time = MPI_Wtime();
+    }
     process(&ctx, rank, size);
-    end_time = MPI_Wtime();
-    FILE* stats = fopen("stats.txt", "w");
+    if (rank == MASTER) {
+        end_time = MPI_Wtime();
+        FILE* stats = fopen("stats.txt", "w");
 
-    fprintf(stats, "%fs %d %d %d %d %d %f %f %f %f\n", end_time - start_time, 
+        fprintf(stats, "%fs %d %d %d %d %d %f %f %f %f\n", end_time - start_time, 
             ctx.l, ctx.a, ctx.b, ctx.n, ctx.N, ctx.pl, ctx.pr, ctx.pu, ctx.pd);
 
-    fclose(stats);
+        fclose(stats);
+    }
 
     MPI_Finalize();
     return 0;
